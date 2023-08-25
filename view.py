@@ -1,5 +1,4 @@
 from helpers import bold
-from tabulate import tabulate
 
 from Project import Projects
 from Issue import Issues
@@ -13,9 +12,9 @@ def view(request):
 
     id = input(bold("Provide id of which board you want to view: ")).strip()
 
-    issues = Issues(request.url, request.headers, request.auth, id)
-    issues.get_issues()
-    issues.get_statuses()
+    issues = Issues(id=id)
+    issues.get_issues(request)
+    issues.get_statuses(request)
     issues.group_issues()
 
     issues.print_board()

@@ -31,11 +31,12 @@ class Projects:
         return all_projects
     
     def get_projects(self):
-        for project in self.get_projects_data(self.url, self.headers, self.auth):
-            project_obj = Project(
-                id=project["id"], name=project["name"], key=project["key"]
-            )
-            self.projects.append(project_obj)
+        if not self.projects:
+            for project in self.get_projects_data(self.url, self.headers, self.auth):
+                project_obj = Project(
+                    id=project["id"], name=project["name"], key=project["key"]
+                )
+                self.projects.append(project_obj)
 
     
     

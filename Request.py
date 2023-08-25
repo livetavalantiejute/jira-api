@@ -30,6 +30,9 @@ class Request:
     #     self.auth = HTTPBasicAuth(self.username, self.apikey)
 
     def get_user_id(self):
+        # if username is None:
+        #     username = self.username
+
         try:
             user_id_response = requests.request(
                 "GET",
