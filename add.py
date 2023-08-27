@@ -1,53 +1,23 @@
 import json
 
-from helpers import bold
+from helpers import bold, get_available_types
 
 import copy
 from Project import Projects
 from Issue import Issue
 
 
-def add(request):
-    user_id = request.get_user_id()
+def add(request, user_id):
+    projects = Projects()
+    projects.get_projects(request)
 
-    projects = Projects(request.url, request.headers, request.auth)
-    projects.get_projects()
-    all_projects = projects.projects
-
-    while True:
-        print(projects)
-        project_id = input(bold("Project id: ")).strip().lower()
-        if next((p.id == project_id for p in all_projects), None):
-            break
-        else:
-            print("Wrong project id\n")
-            continue
+    project_id = projects.get_project_id()
 
     all_priorities = Issue.get_priorities(request=request, project_id=project_id)
     all_types = Issue.get_issue_types(request=request, project_id=project_id)
 
-    while True:
-        print(bold("Available priorities:"))
-        for p in all_priorities:
-            print(p["name"])
-        priority = input(bold("Priority: ")).strip().lower()
-        print(next(prio["name"].lower() == priority for prio in all_priorities), None)
-        if next((prio["name"].lower() == priority for prio in all_priorities), None):
-            break
-        else:
-            print("Wrong priority\n")
-            continue
-
-    while True:
-        print(bold("Available issue types:"))
-        for t in all_types:
-            print(t["name"])
-        issue_type = input(bold("Issue type: ")).strip().lower()
-        if issue_type in (t["name"].lower() == issue_type for t in all_types):
-            break
-        else:
-            print("Wrong issue type\n")
-            continue
+    priority = get_available_types("Available priorities:", all_priorities, "Priority")
+    issue_type = get_available_types("Available issue types:", all_types, "Issue")
 
     summary = input(bold("Summary: ")).strip()
     description = input(bold("Description: ")).strip()
@@ -62,19 +32,3 @@ def add(request):
         issue_type=issue_type,
     )
     issue.add_issue(request=request, project_id=project_id)
-
-    # payload = json.dumps(
-    #     {
-    #         "fields": {
-    #             "assignee": {
-    #                 "id": assignee_id
-    #             },
-    #             "description": "Order entry fails when selecting supplier.",
-    #             "priority": {"id": "20000"},
-    #             "project": {"id": id},
-    #             "reporter": {"id": user_id},
-    #             "summary": "Main order flow broken",
-    #         },
-    #     }
-    # )
-    # response = requests.request("POST", url, data=payload, headers=headers, auth=auth)

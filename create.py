@@ -2,14 +2,11 @@ import requests
 import json
 
 
-def create(request):
-    user_id = request.get_user_id()
-
+def create(request, user_id):
     key = input("Provide project key (e.g. 'SFT'): ").strip().upper()
     name = input("Provide project name (e.g. 'Software board'): ").strip().lower()
     type = input("Provide type (Scrum or Kanban): ").strip().lower()
     description = input("Provide description: ").strip()
-
 
     payload = json.dumps(
         {

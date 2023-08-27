@@ -3,6 +3,7 @@ import requests
 import itertools
 import json
 import copy
+import re
 
 from helpers import bold
 from tabulate import tabulate
@@ -20,12 +21,17 @@ class Issue:
     reporter: str = ""
     status: str = ""
 
+    @classmethod
+    def get_type(self, types, property):
+        return next((t["id"] for t in types if t["name"].lower() == property), None)
+
+
     def add_issue(self, request, project_id):
         priorities = self.get_priorities(request, project_id)
-        priority_id = next((p["id"] for p in priorities if p["name"].lower() == self.priority), None)
+        priority_id = self.get_type(priorities, self.priority)
 
         issue_types = self.get_issue_types(request, project_id)
-        type_id = next((t["id"] for t in issue_types if t["name"].lower() == self.issue_type), None)
+        type_id = self.get_type(issue_types, self.issue_type)
 
         request_assignee = copy.deepcopy(request)
         request_assignee.username = self.assignee
@@ -93,10 +99,48 @@ class Issue:
                 "name": type["name"]
             })
         return types
+    
+
+    def patch_edit(self, request, changed, project_id):
+        payload = {"fields": {}}
+        for change in changed:
+            for key, value in change.items():
+                match key:
+                    case "priority":
+                        priorities = self.get_priorities(request, project_id)
+                        value = self.get_type(priorities, self.priority)
+                    case "issue_type":
+                        issue_types = self.get_issue_types(request, project_id)
+                        value = self.get_type(issue_types, self.issue_type)
+                    case "assignee":
+                        request_assignee = copy.deepcopy(request)
+                        request_assignee.username = self.assignee
+                        value = request_assignee.get_user_id()
+                    case "status":
+                        statuses = Issues.get_statuses(request, project_id)
+                        value = self.get_type(statuses, self.status)
+                key = re.sub("_", "", key)
+                if key != "description" and key != "summary":
+                    payload["fields"][key] = {}
+                    payload["fields"][key]["id"] = value
+                else:
+                    payload["fields"][key] = value
+        payload = json.dumps(payload)
+
+        response = requests.request(
+            "PUT",
+            request.url + "rest/api/2/issue/" + self.key,
+            data=payload,
+            headers=request.headers,
+            auth=request.auth,
+        )
+
+        print(response.text)
+
 
 class Issues:
     def __init__(
-        self, id, issues=[], statuses=[], issues_by_status=[]
+        self, id="", issues=[], statuses=[], issues_by_status=[]
     ):
         # self.url = url
         # self.headers = headers
@@ -136,7 +180,7 @@ class Issues:
                     key=issue["key"],
                     summary=issue["fields"]["summary"],
                     description=issue["fields"]["description"],
-                    assignee=issue["fields"]["assignee"]["displayName"],
+                    assignee=issue["fields"]["assignee"]["displayName"] if issue["fields"]["assignee"] else "",
                     created=issue["fields"]["creator"]["displayName"],
                     issue_type=issue["fields"]["issuetype"]["name"],
                     priority=issue["fields"]["priority"]["name"],
@@ -159,14 +203,17 @@ class Issues:
         except Exception as e:
             print(str(e))
 
-    def get_statuses(self, request):
+    @classmethod
+    def get_statuses(cls, request, id):
+        instance = cls()
         try:
-            for status in self.get_statuses_data(
-                request.url, request.headers, request.auth, self.id
+            for status in instance.get_statuses_data(
+                request.url, request.headers, request.auth, id
             ):
-                self.statuses.append(status["name"])
+                instance.statuses.append(status["name"])
         except KeyError:
             print("No id found")
+        return instance.statuses
 
     @staticmethod
     def sort_issues(issues):
