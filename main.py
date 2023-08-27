@@ -1,4 +1,6 @@
 import sys
+from dotenv import load_dotenv
+import os
 
 from helpers import bold
 
@@ -11,12 +13,6 @@ from edit import edit
 
 
 def main():
-    # modes:
-    # create project (kanban or scrum)
-    # see tasks
-    # add task
-    # edit task
-
     modes = {
         "create": {
             "description": "Create a new project. Either Kanban or Scrum",
@@ -28,9 +24,7 @@ def main():
         "done": {"description": "Exit the program"}
     }
 
-    # username = input(bold("What's your JIRA email? ")).strip().lower()
-    # apikey = input(bold("What's your JIRA API key? ")).strip()
-    # url = input(bold("Input Atlassian URL (e.g. 'https://jira-project-tests.atlassian.net'): ")).strip()
+    load_dotenv()
 
     # try getting command line arguments
     try:
@@ -45,11 +39,9 @@ def main():
     except IndexError:
         sys.exit("Email is required")
     
-    try:
-        apikey = sys.argv[3]
-        apikey = apikey.strip()
-    except IndexError:
-        sys.exit("API key is required")
+    apikey = os.environ.get("APIKEY")
+    if not apikey:
+        sys.exit("Input you API key into environment")
 
     request = Request(username=username, apikey=apikey, url=url)
     request.clean_url()
