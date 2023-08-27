@@ -12,10 +12,13 @@ To use this app, install required dependencies with
 
 *pip install -r requirements.txt*
 
+
+Additionally, add your Jira API key in the enviroment file .env
+
 ## Usage
 To open the app, call
 
-*python main.py <YOUR_JIRA_INSTANCE_URL> <YOUR_JIRA_EMAIL> <YOUR_JIRA_API_KEY>*
+*python main.py <YOUR_JIRA_INSTANCE_URL> <YOUR_JIRA_EMAIL>*
 
 
 After that the available modes are shown:
