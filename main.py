@@ -40,6 +40,7 @@ def main():
         sys.exit("Email is required")
     
     apikey = os.environ.get("APIKEY")
+
     if not apikey:
         sys.exit("Input you API key into environment")
 

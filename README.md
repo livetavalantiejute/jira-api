@@ -15,6 +15,8 @@ To use this app, install required dependencies with
 
 Additionally, add your Jira API key in the enviroment file .env
 
+To create a Jira API key, go to: https://id.atlassian.com/manage-profile/security/api-tokens
+
 ## Usage
 To open the app, call
 
