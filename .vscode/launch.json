@@ -1,0 +1,17 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["https://jira-project-tests.atlassian.net", "livetatestai@gmail.com", "ATATT3xFfGF0LXyhb4X79YY_hrvi3K_Squ2eq-iawxQWdDPnaUuQROHbaJ3M8wO9LQ5P5NYxvBbk5rL1QcydN8weG70K3WshefA-D9Xn9Hl7owBv_JeL4UtBMhvf3gk09WivnIRGg2BKoERnzKsQ2yLD_iTPhSlSXi6pXP8Jre4L3YmyKJhR7bU=D046E7A0"]
+        }
+    ]
+}

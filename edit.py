@@ -11,11 +11,15 @@ from view import view
 def edit(request, user_id):
     projects, project_id, issues = view(request, user_id)
 
-    issue_id = input(bold("\nInput issue key: ")).strip().upper()
+    while True:
+        issue_id = input(bold("\nInput issue key: ")).strip().upper()
 
-    issue = next((i for i in issues.issues if i.key == issue_id), None)
-    if not issue:
-        print("Issue not found")
+        issue = next((i for i in issues.issues if i.key == issue_id), None)
+        if not issue:
+            print("Issue not found")
+            continue
+        else:
+            break
     
     print("Which fields do you want to change? After each field, press Enter, if done, input 'done'")
     fields = []
@@ -42,6 +46,10 @@ def edit(request, user_id):
             case "issue_type":
                 all_types = Issue.get_issue_types(request=request, project_id=project_id)
                 change_value = get_available_types("Available issue types:", all_types, "Issue")
+            case "assignee":
+                if not assignee:
+                    assignee = None
+                change_value = input(f"{bold(change_field.title())}: ").strip()
             case _:
                 change_value = input(f"{bold(change_field.title())}: ").strip()
         changed.append({

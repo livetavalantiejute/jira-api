@@ -19,7 +19,17 @@ def add(request, user_id):
     priority = get_available_types("Available priorities:", all_priorities, "Priority")
     issue_type = get_available_types("Available issue types:", all_types, "Issue")
 
-    summary = input(bold("Summary: ")).strip()
+    if issue_type == "sub-task":
+        parent = input(bold("Parent task key: ")).strip().upper()
+
+    while True:
+        summary = input(bold("Summary: ")).strip()
+        if not summary:
+            print("Provide a summary")
+            continue
+        else:
+            break
+
     description = input(bold("Description: ")).strip()
     assignee = input(bold("Assignee email: ")).strip().lower()
 
@@ -30,5 +40,6 @@ def add(request, user_id):
         priority=priority,
         reporter=user_id,
         issue_type=issue_type,
+        parent=parent
     )
     issue.add_issue(request=request, project_id=project_id)

@@ -15,15 +15,19 @@ def create(request, user_id):
             "key": key,
             "leadAccountId": user_id,
             "name": name,
-            "projectTemplateKey": "com.pyxis.greenhopper.jira:gh-simplified-"+type+"-classic",
+            "projectTemplateKey": "com.pyxis.greenhopper.jira:gh-simplified-"
+            + type
+            + "-classic",
             "projectTypeKey": "software",
         }
     )
 
-    response = requests.request("POST", request.url+"rest/api/2/project", data=payload, headers=request.headers, auth=request.auth)
-
-    print(
-        json.dumps(
-            json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")
-        )
+    response = requests.request(
+        "POST",
+        request.url + "rest/api/2/project",
+        data=payload,
+        headers=request.headers,
+        auth=request.auth,
     )
+
+    print(f"Project {response.json()['key']} inserted successfully!")

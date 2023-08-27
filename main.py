@@ -25,6 +25,7 @@ def main():
         "view": {"description": "View project board", "call_fn": view,},
         "add": {"description": "Add a task to a board", "call_fn": add},
         "edit": {"description": "Edit specific task", "call_fn": edit},
+        "done": {"description": "Exit the program"}
     }
 
     # username = input(bold("What's your JIRA email? ")).strip().lower()
@@ -63,7 +64,11 @@ def main():
         selected_mode = input(bold("Select mode: ")).strip().lower()
 
         if selected_mode != "done":
-            modes[selected_mode]["call_fn"](request, user_id)
+            try:
+                modes[selected_mode]["call_fn"](request, user_id)
+            except KeyError:
+                print("Such mode does not exist")
+                continue
         else:
             break
 

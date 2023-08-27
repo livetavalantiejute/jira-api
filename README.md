@@ -7,9 +7,21 @@ In this app you can:
 * Edit an existing task
 * Download comprehensive data of the whole project
 
-## Usage
+## Installation
 To use this app, install required dependencies with
+
 *pip install -r requirements.txt*
 
+## Usage
 To open the app, call
-*python main.py <YOUR_JIRA_INSTANCE_URL> <YOUR_JIRA_EMAIL> <YOUR_JIRA_API_KEY>* 
+
+*python main.py <YOUR_JIRA_INSTANCE_URL> <YOUR_JIRA_EMAIL> <YOUR_JIRA_API_KEY>*
+
+
+After that the available modes are shown:
+
+**Create, View, Add, Edit, Done**
+
+Input the mode key and follow instructions in the terminal.
+
+The program runs until it is either interrupted, or exited - "done" is input.

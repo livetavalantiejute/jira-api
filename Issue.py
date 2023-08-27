@@ -19,11 +19,14 @@ class Issue:
     issue_type: str = ""
     priority: str = ""
     reporter: str = ""
+    parent: str = ""
     status: str = ""
 
     @classmethod
     def get_type(self, types, property):
-        return next((t["id"] for t in types if t["name"].lower() == property), None)
+        for t in types:
+            if t["name"].lower() == property:
+                return t["id"]
 
 
     def add_issue(self, request, project_id):
@@ -33,20 +36,25 @@ class Issue:
         issue_types = self.get_issue_types(request, project_id)
         type_id = self.get_type(issue_types, self.issue_type)
 
-        request_assignee = copy.deepcopy(request)
-        request_assignee.username = self.assignee
-        assignee_id = request_assignee.get_user_id()
+        
+        # if self.assignee:
+        #     request_assignee.username = self.assignee
+        #     assignee_id = request_assignee.get_user_id()
+        #     request_assignee = copy.deepcopy(request)
+        # else:
+        #     assignee_id = None
 
         payload = json.dumps(
             {
                 "fields": {
-                    "assignee": {"id": assignee_id},
+                    "assignee": {"name": self.assignee},
                     "description": self.description,
                     "issuetype": {"id": type_id},
                     "priority": {"id": priority_id},
                     "project": {"id": project_id},
                     "reporter": {"id": request.get_user_id()},
                     "summary": self.summary,
+                    "parent": {"key": self.parent}
                 },
             }
         )
@@ -59,14 +67,11 @@ class Issue:
             auth=request.auth,
         )
 
-        print(
-            json.dumps(
-                json.loads(response.text),
-                sort_keys=True,
-                indent=4,
-                separators=(",", ": "),
-            )
-        )
+        response_key = response.json()['key']
+        if response_key:
+            print(f"Successfully added {response_key}")
+        else:
+            print(f"Error adding a task. {response['errors']['summary']}")
 
     @staticmethod
     def get_priorities(request, project_id):
@@ -105,13 +110,14 @@ class Issue:
         payload = {"fields": {}}
         for change in changed:
             for key, value in change.items():
+                key = re.sub("_", "", key)
                 match key:
                     case "priority":
                         priorities = self.get_priorities(request, project_id)
-                        value = self.get_type(priorities, self.priority)
-                    case "issue_type":
+                        value = self.get_type(priorities, value)
+                    case "issuetype":
                         issue_types = self.get_issue_types(request, project_id)
-                        value = self.get_type(issue_types, self.issue_type)
+                        value = self.get_type(issue_types, value)
                     case "assignee":
                         request_assignee = copy.deepcopy(request)
                         request_assignee.username = self.assignee
@@ -119,12 +125,11 @@ class Issue:
                     case "status":
                         statuses = Issues.get_statuses(request, project_id)
                         value = self.get_type(statuses, self.status)
-                key = re.sub("_", "", key)
-                if key != "description" and key != "summary":
-                    payload["fields"][key] = {}
-                    payload["fields"][key]["id"] = value
-                else:
-                    payload["fields"][key] = value
+                    case "description" | "summary":
+                        payload["fields"][key] = value
+                    case _:
+                        payload["fields"][key] = {}
+                        payload["fields"][key]["id"] = value
         payload = json.dumps(payload)
 
         response = requests.request(
@@ -135,20 +140,17 @@ class Issue:
             auth=request.auth,
         )
 
-        print(response.text)
+        print(f"Successfully edited {self.key}!")
 
 
 class Issues:
     def __init__(
         self, id="", issues=[], statuses=[], issues_by_status=[]
     ):
-        # self.url = url
-        # self.headers = headers
-        # self.auth = auth
         self.id = id
-        self.issues = issues
-        self.statuses = statuses
-        self.issues_by_status = issues_by_status
+        self.issues = []
+        self.statuses = []
+        self.issues_by_status = []
 
     def print_board(self):
         for category in self.issues_by_status:
@@ -176,6 +178,11 @@ class Issues:
             for issue in self.get_issues_data(
                 request.url, request.headers, request.auth, self.id
             ):
+                try:
+                    parent_issue = issue["fields"]["parent"]["key"]
+                except KeyError:
+                    parent_issue = ""
+
                 issue_obj = Issue(
                     key=issue["key"],
                     summary=issue["fields"]["summary"],
@@ -185,9 +192,11 @@ class Issues:
                     issue_type=issue["fields"]["issuetype"]["name"],
                     priority=issue["fields"]["priority"]["name"],
                     reporter=issue["fields"]["reporter"]["displayName"],
+                    parent=parent_issue,
                     status=issue["fields"]["status"]["name"],
                 )
-                self.issues.append(issue_obj)
+                if issue_obj not in self.issues:
+                    self.issues.append(issue_obj)
         except UnboundLocalError:
             print("Cannot find project")
 
@@ -203,17 +212,17 @@ class Issues:
         except Exception as e:
             print(str(e))
 
-    @classmethod
-    def get_statuses(cls, request, id):
-        instance = cls()
+    # @classmethod
+    def get_statuses(self, request, id):
         try:
-            for status in instance.get_statuses_data(
+            for status in self.get_statuses_data(
                 request.url, request.headers, request.auth, id
             ):
-                instance.statuses.append(status["name"])
+                if status not in self.statuses:
+                    self.statuses.append(status["name"])
         except KeyError:
             print("No id found")
-        return instance.statuses
+        return self.statuses
 
     @staticmethod
     def sort_issues(issues):
