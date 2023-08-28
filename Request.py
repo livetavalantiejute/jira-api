@@ -19,7 +19,6 @@ class Request:
         if self.headers is None:
             self.headers = {"Accept": "application/json", "Content-Type": "application/json"}
         if self.auth is None:
-            print(self.apikey)
             self.auth = HTTPBasicAuth(self.username, self.apikey)
 
     def clean_url(self):
@@ -33,7 +32,6 @@ class Request:
         query = {
             "query": self.username
         }
-
         try:
             user_id_response = requests.request(
                 "GET",
@@ -42,7 +40,6 @@ class Request:
                 params=query,
                 auth=self.auth,
             )
-            print(json.dumps(json.loads(user_id_response.text), sort_keys=True, indent=4, separators=(",", ": ")))
             user_id = user_id_response.json()[0]["accountId"]
         except IndexError:
             sys.exit("No user found.")

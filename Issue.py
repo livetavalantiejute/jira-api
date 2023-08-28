@@ -36,14 +36,6 @@ class Issue:
         issue_types = self.get_issue_types(request, project_id)
         type_id = self.get_type(issue_types, self.issue_type)
 
-        
-        # if self.assignee:
-        #     request_assignee.username = self.assignee
-        #     assignee_id = request_assignee.get_user_id()
-        #     request_assignee = copy.deepcopy(request)
-        # else:
-        #     assignee_id = None
-
         payload = json.dumps(
             {
                 "fields": {
@@ -54,7 +46,7 @@ class Issue:
                     "project": {"id": project_id},
                     "reporter": {"id": request.get_user_id()},
                     "summary": self.summary,
-                    "parent": {"key": self.parent}
+                    "parent": {"key": self.parent if self.parent else None}
                 },
             }
         )
