@@ -24,12 +24,15 @@ class Issue:
 
     @classmethod
     def get_type(self, types, property):
+        """Get id of a type from types list of dictionaries"""
         for t in types:
             if t["name"].lower() == property:
                 return t["id"]
 
 
     def add_issue(self, request, project_id):
+        """Add issue through POST"""
+        #Get all priorities and issues, and validate with object parameter
         priorities = self.get_priorities(request, project_id)
         priority_id = self.get_type(priorities, self.priority)
 
@@ -51,22 +54,27 @@ class Issue:
             }
         )
 
-        response = requests.request(
-            "POST",
-            request.url + "rest/api/2/issue",
-            data=payload,
-            headers=request.headers,
-            auth=request.auth,
-        )
+        try:
+            response = requests.request(
+                "POST",
+                request.url + "rest/api/2/issue",
+                data=payload,
+                headers=request.headers,
+                auth=request.auth,
+            )
+        except requests.exceptions.RequestException as e:
+            print(str(e))
 
-        response_key = response.json()['key']
-        if response_key:
-            print(f"Successfully added {response_key}")
-        else:
+        try:
+            response_key = response.json()['key']
+        except KeyError:
             print(f"Error adding a task. {response['errors']['summary']}")
+        else:
+            print(f"Successfully added {response_key}")
 
     @staticmethod
     def get_priorities(request, project_id):
+        """Get all priorities for a project"""
         response = requests.request(
             "GET",
             request.url + "rest/api/2/priority/search?projectId=" + project_id,
@@ -78,16 +86,21 @@ class Issue:
     
     @staticmethod
     def get_issue_types(request, project_id):
+        """Get all issue types for a project and add it to a list of dictionaries"""
         query = {
             "projectId": project_id
         }
-        response = requests.request(
-            "GET",
-            request.url+"rest/api/2/issuetype/project",
-            headers=request.headers,
-            params=query,
-            auth=request.auth
-        )
+
+        try:
+            response = requests.request(
+                "GET",
+                request.url+"rest/api/2/issuetype/project",
+                headers=request.headers,
+                params=query,
+                auth=request.auth
+            )
+        except requests.exceptions.RequestException as e:
+            print(str(e))
 
         types = []
         for type in response.json():
@@ -97,47 +110,89 @@ class Issue:
             })
         return types
     
+    def get_transitions(self, request):
+        """Get all transitions (statuses). Required when changing status"""
+        try:
+            return requests.request(
+                "GET",
+                request.url + f"rest/api/2/issue/{self.key}/transitions",
+                headers=request.headers,
+                auth=request.auth,
+            ).json()["transitions"]
+        except requests.exceptions.RequestException as e:
+            print(str(e))
 
     def patch_edit(self, request, changed, project_id):
+        """PUT request for an issue in project. Accepts request object, changed list of dictionaries and project id"""
         payload = {"fields": {}}
         for change in changed:
             for key, value in change.items():
+                #remove _ from key - API accepts keys without underscores
                 key = re.sub("_", "", key)
                 match key:
                     case "priority":
+                        #Get all priorities, validate and return priority id
                         priorities = self.get_priorities(request, project_id)
                         value = self.get_type(priorities, value)
                     case "issuetype":
+                        #Get all issue types, validate and return issue type id
                         issue_types = self.get_issue_types(request, project_id)
                         value = self.get_type(issue_types, value)
                     case "assignee":
-                        request_assignee = copy.deepcopy(request)
-                        request_assignee.username = self.assignee
-                        value = request_assignee.get_user_id()
+                        #Get user id of assignee only if it's not None
+                        if value:
+                            request_assignee = copy.deepcopy(request)
+                            request_assignee.username = value
+                            value = request_assignee.get_user_id()
+                    case "reporter":
+                        #Get user id of reporter
+                        request_reporter = copy.deepcopy(request)
+                        request_reporter.username = value
+                        value = request_reporter.get_user_id()
                     case "status":
-                        statuses = Issues.get_statuses(request, project_id)
-                        value = self.get_type(statuses, self.status)
-                    case "description" | "summary":
-                        payload["fields"][key] = value
-                    case _:
-                        payload["fields"][key] = {}
-                        payload["fields"][key]["id"] = value
-        payload = json.dumps(payload)
+                        #Get transitions and return transition id
+                        statuses = self.get_transitions(request)
+                        value = self.get_type(statuses, value)
+                if key in ["description", "summary"]:
+                    #description and summary don't need keys
+                    payload["fields"][key] = value
+                elif key == "status":
+                    #if the key is status, a POST request is sent to issue transitions
+                    data = json.dumps({"transition": {"id": value}})
+                    response = requests.request(
+                        "POST",
+                        request.url + "rest/api/3/issue/" + self.key + "/transitions",
+                        data=data,
+                        headers=request.headers,
+                        auth=request.auth,
+                    )
+                    continue
+                else:
+                    #for all other keys, key is required
+                    payload["fields"][key] = {}
+                    payload["fields"][key]["id"] = value
 
-        response = requests.request(
-            "PUT",
-            request.url + "rest/api/2/issue/" + self.key,
-            data=payload,
-            headers=request.headers,
-            auth=request.auth,
-        )
+        if payload:
+            payload = json.dumps(payload)
+            
+            try:
+                response = requests.request(
+                    "PUT",
+                    request.url + "rest/api/2/issue/" + self.key,
+                    data=payload,
+                    headers=request.headers,
+                    auth=request.auth,
+                )
+            except requests.exceptions.RequestException as e:
+                print(str(e))
 
         print(f"Successfully edited {self.key}!")
 
 
 class Issues:
+    """Class for all issues in project"""
     def __init__(
-        self, id="", issues=[], statuses=[], issues_by_status=[]
+        self, id=""
     ):
         self.id = id
         self.issues = []
@@ -145,7 +200,9 @@ class Issues:
         self.issues_by_status = []
 
     def print_board(self):
+        """Print the board of project by status"""
         for category in self.issues_by_status:
+            #Print bold status name
             print(bold(list(category.keys())[0]))
             for issue in category.values():
                 if issue:
@@ -155,6 +212,7 @@ class Issues:
 
     @staticmethod
     def get_issues_data(url, headers, auth, id):
+        """Get all issues for project"""
         try:
             return requests.request(
                 "GET",
@@ -166,6 +224,7 @@ class Issues:
             print(str(e))
 
     def get_issues(self, request):
+        """Populate issues object with project issues"""
         try:
             for issue in self.get_issues_data(
                 request.url, request.headers, request.auth, self.id
@@ -194,6 +253,7 @@ class Issues:
 
     @staticmethod
     def get_statuses_data(url, headers, auth, id):
+        """Get all statuses for project"""
         try:
             return requests.request(
                 "GET",
@@ -204,29 +264,35 @@ class Issues:
         except Exception as e:
             print(str(e))
 
-    # @classmethod
-    def get_statuses(self, request, id):
+    @classmethod
+    def get_statuses(cls, request, id):
+        """Get all statuses and populate self.statuses"""
+        instance = cls()
         try:
-            for status in self.get_statuses_data(
+            for status in instance.get_statuses_data(
                 request.url, request.headers, request.auth, id
             ):
-                if status not in self.statuses:
-                    self.statuses.append(status["name"])
+                if status not in instance.statuses:
+                    instance.statuses.append(status)
         except KeyError:
             print("No id found")
-        return self.statuses
+        return instance.statuses
 
     @staticmethod
     def sort_issues(issues):
+        """Sort issues by status"""
         issues.sort(key=lambda item: item.status)
 
     def group_issues(self):
+        """Group issues by status"""
         self.sort_issues(self.issues)
         for key, category in itertools.groupby(
             self.issues, key=lambda item: item.status
         ):
+            #Each status contains its issues
             self.issues_by_status.append({key: list(category)})
 
+        #if no issues in statuses, status issues is empty
         for status in self.statuses:
             if not any(status in keys for keys in self.issues_by_status):
                 self.issues_by_status.append({status: []})

@@ -22,6 +22,7 @@ class Request:
             self.auth = HTTPBasicAuth(self.username, self.apikey)
 
     def clean_url(self):
+        """Clean url - remove www and add a trailing slash if not present"""
         url = re.sub(r"www.", "", self.url)
         trailing_slash = re.search(r"/$", url)
         if not trailing_slash:
@@ -29,6 +30,7 @@ class Request:
         self.url = url
 
     def get_user_id(self):
+        """Get user id from jira url"""
         query = {
             "query": self.username
         }

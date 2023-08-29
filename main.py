@@ -10,18 +10,26 @@ from create import create
 from view import view
 from add import add
 from edit import edit
+from download import download
 
 
 def main():
+    """Main function to call.
+    Calls other functions depending on mode and checks for validity of data for API"""
+
     modes = {
         "create": {
             "description": "Create a new project. Either Kanban or Scrum",
             "call_fn": create,
         },
-        "view": {"description": "View project board", "call_fn": view,},
+        "view": {
+            "description": "View project board",
+            "call_fn": view,
+        },
         "add": {"description": "Add a task to a board", "call_fn": add},
         "edit": {"description": "Edit specific task", "call_fn": edit},
-        "done": {"description": "Exit the program"}
+        "download": {"description": "Download project data", "call_fn": download},
+        "done": {"description": "Exit the program"},
     }
 
     load_dotenv()
@@ -38,17 +46,21 @@ def main():
         username = username.strip()
     except IndexError:
         sys.exit("Email is required")
-    
+
+    # try getting api key from .env
     apikey = os.environ.get("APIKEY")
 
     if not apikey:
         sys.exit("Input you API key into environment")
 
+    # constructing a request object - used to pass to other functions, where API call is needed.
     request = Request(username=username, apikey=apikey, url=url)
     request.clean_url()
 
     user_id = request.get_user_id()
 
+    # Print all the modes and call functions indefinitely - until "done"
+    # This allows fewer API calls and opening the program again
     while True:
         print()
         for key in modes:

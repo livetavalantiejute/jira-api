@@ -5,6 +5,15 @@ from Issue import Issues
 
 
 def view(request, user_id):
+    """View the project and its board"""
+
+    id, issues = view_project(request)
+    issues.print_board()
+
+    return id, issues
+
+
+def view_project(request):
     projects = Projects()
     projects.get_projects(request)
 
@@ -16,6 +25,4 @@ def view(request, user_id):
     issues.get_statuses(request, id)
     issues.group_issues()
 
-    issues.print_board()
-
-    return projects, id, issues
+    return id, issues

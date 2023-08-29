@@ -9,9 +9,16 @@ from view import view
 
 
 def edit(request, user_id):
-    projects, project_id, issues = view(request, user_id)
+    """
+    Edit an issue from a project.
+    Gets API request object and user id from main()
+    """
+    #Call view function to show all projects, select one and show its issues
+    #Extract project id and issues from view function
+    project_id, issues = view(request, user_id)
 
     while True:
+        #look through issue ids
         issue_id = input(bold("\nInput issue key: ")).strip().upper()
 
         issue = next((i for i in issues.issues if i.key == issue_id), None)
@@ -27,29 +34,44 @@ def edit(request, user_id):
     while True:
         field = input().strip().lower()
 
+        #Check if field is available.
         if field == "done":
             break
-        elif field == "key":
+        elif field in ["key", "created"]:
             print(red("Try again. Field is unchangeable"))
+        #All available fields are in issue object. So dir(issue) is called
         elif any(issue_field for issue_field in dir(issue) if issue_field == field and not callable(getattr(issue, issue_field)) and not issue_field.startswith("__")):
             fields.append(field)
         else:
             print(red("Try again. Field does not exist"))
 
     changed = []
-    # edited_issue = copy.deepcopy(issue)
+    
+    #ask for each field input
     for change_field in fields:
         match change_field:
             case "priority":
+                #Show all priorities, get input and validate
                 all_priorities = Issue.get_priorities(request=request, project_id=project_id)
                 change_value = get_available_types("Available priorities:", all_priorities, "Priority")
             case "issue_type":
+                #Show all issue types, get input and validate
                 all_types = Issue.get_issue_types(request=request, project_id=project_id)
                 change_value = get_available_types("Available issue types:", all_types, "Issue")
             case "assignee":
-                if not assignee:
-                    assignee = None
                 change_value = input(f"{bold(change_field.title())}: ").strip()
+                #pass None if assignee is empty - otherwise it will default to a different assignee
+                if not change_value:
+                    change_value = None
+            #Mandatory field
+            case "reporter":
+                while True:
+                    change_value = input(f"{bold(change_field.title())}: ").strip()
+                    if not change_value:
+                        print("Issues need a reporter")
+                    else:
+                        break
+            #Default
             case _:
                 change_value = input(f"{bold(change_field.title())}: ").strip()
         changed.append({
@@ -60,25 +82,3 @@ def edit(request, user_id):
         issue.patch_edit(request, changed, project_id)
     except Exception as e:
         print(str(e))
-    
-    
-
-    # all_priorities = Issue.get_priorities(request=request, project_id=project_id)
-    # all_types = Issue.get_issue_types(request=request, project_id=project_id)
-
-    # priority = get_available_types("Available priorities:", all_priorities, "Priority")
-    # issue_type = get_available_types("Available issue types:", all_types, "Issue")
-
-    # summary = input(bold("Summary: ")).strip()
-    # description = input(bold("Description: ")).strip()
-    # assignee = input(bold("Assignee email: ")).strip().lower()
-
-    # issue = Issue(
-    #     summary=summary,
-    #     description=description,
-    #     assignee=assignee,
-    #     priority=priority,
-    #     reporter=user_id,
-    #     issue_type=issue_type,
-    # )
-    # issue.add_issue(request=request, project_id=project_id)

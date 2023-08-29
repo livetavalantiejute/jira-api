@@ -21,6 +21,7 @@ class Projects:
     
     @classmethod
     def get_projects_data(self, request):
+        """Get project data prom API"""
         try:
             all_projects = requests.request(
                 "GET", request.url + "rest/api/2/project/search", headers=request.headers, auth=request.auth
@@ -30,6 +31,7 @@ class Projects:
         return all_projects
     
     def get_projects(self, request):
+        """Get all projects if projects is empty"""
         if not self.projects:
             for project in self.get_projects_data(request):
                 project_obj = Project(
@@ -38,12 +40,14 @@ class Projects:
                 self.projects.append(project_obj)
 
     def project_validation(self, id):
+        """Validate project by id"""
         if any(p.id == id for p in self.projects):
             return True
         else:
             print("Wrong project id\n")
 
     def get_project_id(self):
+        """Get project id - get input and validate"""
         while True:
             print(self.__str__())
             project_id = input(bold("Project id: ")).strip().lower()
