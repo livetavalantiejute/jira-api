@@ -31,17 +31,6 @@ def add(request, user_id):
             continue
         break
 
-    issue = Issue(
-        summary=summary,
-        description=description,
-        assignee=assignee,
-        priority=priority,
-        reporter=user_id,
-        issue_type=issue_type,
-        parent=parent,
-    )
-    issue.add_issue(request=request, project_id=project_id)
-
 
 def add_input(request, user_id, projects):
     project_id = projects.get_project_id()
